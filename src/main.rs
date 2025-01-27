@@ -4,7 +4,7 @@ use askama_actix::TemplateToResponse;
 use sqlx::{Row, PgPool};
 
 #[derive(Template)]
-#[template(path = "hello.html")]
+#[template(path = "hello.askama.html")]
 struct HelloTemplate {
     name: String,
 }
@@ -17,7 +17,7 @@ async fn hello(name: web::Path<String>) -> HttpResponse {
 }
 
 #[derive(Template)]
-#[template(path = "todo.html")]
+#[template(path = "todo.askama.html")]
 struct TodoTemplate {
     tasks: Vec<String>,
 }
