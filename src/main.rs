@@ -1,68 +1,102 @@
-use std::{env, io};
+use actix_web::{get, post, web, App, HttpResponse, HttpServer};
+use askama::Template;
+use askama_actix::TemplateToResponse;
+use sqlx::{Row, PgPool};
 
-use actix_files::Files;
-use actix_session::{storage::CookieSessionStore, SessionMiddleware};
-use actix_web::{
-    http,
-    middleware::{ErrorHandlers, Logger},
-    web, App, HttpServer,
-};
-use dotenvy::dotenv;
-use tera::Tera;
+#[derive(Template)]
+#[template(path = "hello.html")]
+struct HelloTemplate {
+    name: String,
+}
+#[get("/hello/{name}")]
+async fn hello(name: web::Path<String>) -> HttpResponse {
+    let hello = HelloTemplate {
+        name: name.into_inner(),
+    };
+    hello.to_response()
+}
 
-mod api;
-mod db;
-mod model;
-mod session;
+#[derive(Template)]
+#[template(path = "todo.html")]
+struct TodoTemplate {
+    tasks: Vec<String>,
+}
+#[get("/")]
+async fn todo(pool: web::Data<PgPool>) -> HttpResponse {
+    let rows = sqlx::query("SELECT task FROM tasks;")
+        .fetch_all(pool.as_ref())
+        .await
+        .unwrap();
+    let tasks: Vec<String> = rows
+        .iter()
+        .map(|row| row.get::<String, _>("task"))
+        .collect();
+    let todo = TodoTemplate { tasks };
+    todo.to_response()
+}
 
-// NOTE: Not a suitable session key for production.
-static SESSION_SIGNING_KEY: &[u8] = &[0; 64];
+#[derive(serde::Deserialize)]
+struct Task {
+    id: Option<String>,
+    task: Option<String>,
+}
+
+#[post("/update")]
+async fn update(pool: web::Data<PgPool>, form: web::Form<Task>) -> HttpResponse {
+    let task = form.into_inner();
+
+    if let Some(id) = task.id {
+        sqlx::query("DELETE FROM tasks WHERE task = $1")
+            .bind(id)
+            .execute(pool.as_ref())
+            .await
+            .unwrap();
+    }
+    match task.task {
+        Some(task) if !task.is_empty() => {
+            sqlx::query("INSERT INTO tasks (task) VALUES ($1)")
+                .bind(task)
+                .execute(pool.as_ref())
+                .await
+                .unwrap();
+        }
+        _ => {}
+    }
+
+    HttpResponse::Found()
+        .append_header(("Location", "/"))
+        .finish()
+}
 
 #[actix_web::main]
-async fn main() -> io::Result<()> {
-    dotenv().ok();
-    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
-
-    let key = actix_web::cookie::Key::from(SESSION_SIGNING_KEY);
-
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let pool = db::init_pool(&database_url)
+async fn main() -> std::io::Result<()> {
+    let pool = PgPool::connect("postgres://todo_user:todo_pass@localhost:5432/todo_db").await.unwrap();
+    sqlx::query("CREATE TABLE IF NOT EXISTS tasks (task TEXT)")
+        .execute(&pool)
         .await
-        .expect("Failed to create pool");
+        .unwrap();
 
-    log::info!("starting HTTP server at http://localhost:8080");
+    sqlx::query("INSERT INTO tasks (task) VALUES ('タスク1')")
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("INSERT INTO tasks (task) VALUES ('タスク2')")
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("INSERT INTO tasks (task) VALUES ('タスク3')")
+        .execute(&pool)
+        .await
+        .unwrap();
 
     HttpServer::new(move || {
-        log::debug!("Constructing the App");
-
-        let mut templates = Tera::new("templates/**/*").expect("errors in tera templates");
-        templates.autoescape_on(vec!["tera"]);
-
-        let session_store = SessionMiddleware::builder(CookieSessionStore::default(), key.clone())
-            .cookie_secure(false)
-            .build();
-
-        let error_handlers = ErrorHandlers::new()
-            .handler(
-                http::StatusCode::INTERNAL_SERVER_ERROR,
-                api::internal_server_error,
-            )
-            .handler(http::StatusCode::BAD_REQUEST, api::bad_request)
-            .handler(http::StatusCode::NOT_FOUND, api::not_found);
-
         App::new()
-            .app_data(web::Data::new(templates))
+            .service(hello)
+            .service(update)
+            .service(todo)
             .app_data(web::Data::new(pool.clone()))
-            .wrap(Logger::default())
-            .wrap(session_store)
-            .wrap(error_handlers)
-            .service(web::resource("/").route(web::get().to(api::index)))
-            .service(web::resource("/todo").route(web::post().to(api::create)))
-            .service(web::resource("/todo/{id}").route(web::post().to(api::update)))
-            .service(Files::new("/static", "./static"))
     })
-    .bind(("127.0.0.1", 8080))?
-    .workers(2)
-    .run()
-    .await
+        .bind(("127.0.0.1", 8080))?
+        .run()
+        .await
 }
