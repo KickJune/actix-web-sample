@@ -1,23 +1,21 @@
-<!DOCTYPE html>
-<html lang="ja">
-  <head>
-    <title>TODO</title>
-  </head>
+{% extends "base.askama.html" %}
 
-  <body>
-    <form action="/update" method="post">
-      <ul>
-        {% for task in tasks %}
-        <li>
-          {{ task }}<button type="submit" name="id" value="{{ task }}">
-            Done
-          </button>
-        </li>
-        {% endfor %}
-      </ul>
+{% block title %}TODO{% endblock %}
 
-      <input type="text" name="task" />
-      <button type="submit">作成</button>
-    </form>
-  </body>
-</html>
+{% block content %}
+  <form action="/update" method="post">
+    <ul>
+      {% for task in tasks %}
+      <li>
+        {{ task }}<button type="submit" name="id" value="{{ task }}">
+          Done
+        </button>
+      </li>
+      {% endfor %}
+    </ul>
+
+    <input type="text" name="task" />
+    <button type="submit">作成</button>
+  </form>
+{% endblock %}
+

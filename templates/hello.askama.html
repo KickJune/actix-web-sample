@@ -1,10 +1,7 @@
-<!DOCTYPE html>
-<html lang="ja">
-  <head>
-    <title>Hello world!</title>
-  </head>
+{% extends "base.askama.html" %}
 
-  <body>
-    Hello <b>{{ name }}</b>
-  </body>
-</html>
+{% block title %}Hello world!{% endblock %}
+
+{% block content %}
+  Hello <b>{{ name }}</b>
+{% endblock %}
