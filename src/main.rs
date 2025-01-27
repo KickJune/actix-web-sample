@@ -70,24 +70,7 @@ async fn update(pool: web::Data<PgPool>, form: web::Form<Task>) -> HttpResponse 
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let pool = PgPool::connect("postgres://todo_user:todo_pass@localhost:5432/todo_db").await.unwrap();
-    sqlx::query("CREATE TABLE IF NOT EXISTS tasks (task TEXT)")
-        .execute(&pool)
-        .await
-        .unwrap();
-
-    sqlx::query("INSERT INTO tasks (task) VALUES ('タスク1')")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query("INSERT INTO tasks (task) VALUES ('タスク2')")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query("INSERT INTO tasks (task) VALUES ('タスク3')")
-        .execute(&pool)
-        .await
-        .unwrap();
+    let pool = PgPool::connect("postgres://sample_user:sample_pass@localhost:5432/sample_db").await.unwrap();
 
     HttpServer::new(move || {
         App::new()

@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS tasks;
+
+CREATE TABLE tasks (task TEXT);
