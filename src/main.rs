@@ -1,45 +1,40 @@
-use actix_web::web::Redirect;
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{get, post, web, App, HttpResponse, HttpServer};
 use askama::Template;
 use askama_actix::TemplateToResponse;
-use chrono::naive::NaiveDate;
-use serde::{Deserialize, Serialize};
-use sqlx::{PgPool, Row};
+use serde::Deserialize;
+use sqlx::{FromRow, PgPool};
 
 #[derive(Template)]
-#[template(path = "hello.askama.html")]
-struct HelloTemplate {
-    name: String,
+#[template(path = "item-detail.askama.html")]
+struct ItemDetailTemplate {
+    item: Item,
 }
-#[get("/hello/{name}")]
-async fn hello(name: web::Path<String>) -> HttpResponse {
-    let hello = HelloTemplate {
-        name: name.into_inner(),
-    };
-    hello.to_response()
+#[get("/items/{id}")]
+async fn hello(id: web::Path<i32>, pool: web::Data<PgPool>) -> HttpResponse {
+    let row = sqlx::query_as::<_, Item>("SELECT * FROM items WHERE id = $1")
+        .bind(id.into_inner())
+        .fetch_one(pool.as_ref())
+        .await
+        .unwrap();
+
+    let template = ItemDetailTemplate { item: row };
+    template.to_response()
 }
 
-#[derive(Template)]
+#[derive(Debug, Template)]
 #[template(path = "item-list.askama.html")]
 struct ItemListTemplate {
     item_list: Vec<Item>,
 }
 
-// #[derive(Debug, Deserialize, Serialize)]
-// struct Task {
-//     id: Option<String>,
-//     name: Option<String>,
-//     price: Option<i32>,
-// }
-
-#[derive(Deserialize, Debug)]
+#[derive(Debug, Deserialize)]
 struct ItemRequest {
     name: String,
     price: i32,
     description: Option<String>, // NULLが入るかもしれない時はOptionにする
 }
 
-#[derive(sqlx::FromRow, Deserialize, Debug)]
+#[derive(Debug, FromRow)]
 struct Item {
     id: i32,
     name: String,
@@ -47,15 +42,15 @@ struct Item {
     description: Option<String>, // NULLが入るかもしれない時はOptionにする
 }
 
-#[get("/")]
+#[get("/items")]
 async fn item_list(pool: web::Data<PgPool>) -> HttpResponse {
     let rows = sqlx::query_as::<_, Item>("SELECT * FROM items")
         .fetch_all(pool.as_ref())
         .await
         .unwrap();
 
-    let item_list_template = ItemListTemplate { item_list: rows };
-    item_list_template.to_response()
+    let template = ItemListTemplate { item_list: rows };
+    template.to_response()
 }
 
 #[post("/new")]
@@ -71,7 +66,7 @@ async fn new(pool: web::Data<PgPool>, form: web::Form<ItemRequest>) -> HttpRespo
         .unwrap();
 
     HttpResponse::Found()
-        .append_header(("Location", "/"))
+        .append_header(("Location", "/items"))
         .finish()
 }
 
@@ -83,6 +78,7 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
+            .service(web::redirect("/", "/items"))
             .service(hello)
             // .service(update)
             .service(item_list)

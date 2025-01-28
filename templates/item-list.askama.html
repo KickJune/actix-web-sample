@@ -1,32 +1,34 @@
 {% extends "base.askama.html" %}
 
-{% block title %}TODO{% endblock %}
+{% block title %}
+  商品リスト
+{% endblock %}
 
 {% block content %}
-    <ul>
-      {% for item in item_list %}
-      <li>
-        {{ item.name }}<button type="submit" name="id" value="{{ item.id }}">
-          Done
-        </button>
-      </li>
-      {% endfor %}
-    </ul>
+  <ul>
+    {% for item in item_list %}
+    <li>
+      <a href="/items/{{ item.id }}">{{ item.name }}</a>
+    </li>
+    {% endfor %}
+  </ul>
+
+  <hr />
 
   <form action="/new" method="post">
     <div>
       <label for="name">商品名</label>
-      <input id="name" name="name" />
+      <input id="name" name="name" required />
     </div>
     <div>
       <label for="price">価格</label>
-      <input id="price" name="price" type="number" />
+      <input id="price" name="price" type="number" required />
     </div>
     <div>
       <label for="description">説明</label>
       <textarea id="description" name="description"></textarea>
     </div>
-    <button>登録</button>
+    <button class="btn btn-primary">登録</button>
   </form>
 {% endblock %}
 
