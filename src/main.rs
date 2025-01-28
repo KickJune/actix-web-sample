@@ -1,4 +1,5 @@
-use actix_web::{get, post, web, App, HttpResponse, HttpServer};
+use actix_web::web::Redirect;
+use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use askama::Template;
 use askama_actix::TemplateToResponse;
 use chrono::naive::NaiveDate;
@@ -73,33 +74,6 @@ async fn new(pool: web::Data<PgPool>, form: web::Form<ItemRequest>) -> HttpRespo
         .append_header(("Location", "/"))
         .finish()
 }
-
-// #[post("/update")]
-// async fn update(pool: web::Data<PgPool>, form: web::Form<Task>) -> HttpResponse {
-//     let task = form.into_inner();
-//
-//     if let Some(id) = task.id {
-//         sqlx::query("DELETE FROM tasks WHERE task = $1")
-//             .bind(id)
-//             .execute(pool.as_ref())
-//             .await
-//             .unwrap();
-//     }
-//     match task.name {
-//         Some(task) if !task.is_empty() => {
-//             sqlx::query("INSERT INTO tasks (task) VALUES ($1)")
-//                 .bind(task)
-//                 .execute(pool.as_ref())
-//                 .await
-//                 .unwrap();
-//         }
-//         _ => {}
-//     }
-//
-//     HttpResponse::Found()
-//         .append_header(("Location", "/"))
-//         .finish()
-// }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
