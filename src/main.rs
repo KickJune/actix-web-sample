@@ -1,30 +1,21 @@
 use actix_web::{get, post, web, App, HttpResponse, HttpServer};
-use askama::Template;
-use askama_actix::TemplateToResponse;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgPool};
+use tera::{Context, Tera};
 
-#[derive(Template)]
-#[template(path = "item-detail.askama.html")]
-struct ItemDetailTemplate {
-    item: Item,
-}
 #[get("/items/{id}")]
-async fn hello(id: web::Path<i32>, pool: web::Data<PgPool>) -> HttpResponse {
+async fn hello(id: web::Path<i32>, tera: web::Data<Tera>, pool: web::Data<PgPool>) -> HttpResponse {
     let row = sqlx::query_as::<_, Item>("SELECT * FROM items WHERE id = $1")
         .bind(id.into_inner())
         .fetch_one(pool.as_ref())
         .await
         .unwrap();
 
-    let template = ItemDetailTemplate { item: row };
-    template.to_response()
-}
+    let mut context = Context::new();
+    context.insert("item", &row);
 
-#[derive(Debug, Template)]
-#[template(path = "item-list.askama.html")]
-struct ItemListTemplate {
-    item_list: Vec<Item>,
+    let rendered = tera.render("item-detail.askama.html", &context).unwrap();
+    HttpResponse::Ok().content_type("text/html").body(rendered)
 }
 
 #[derive(Debug, Deserialize)]
@@ -34,7 +25,7 @@ struct ItemRequest {
     description: Option<String>, // NULLが入るかもしれない時はOptionにする
 }
 
-#[derive(Debug, FromRow)]
+#[derive(Debug, FromRow, Serialize, Deserialize)]
 struct Item {
     id: i32,
     name: String,
@@ -43,14 +34,17 @@ struct Item {
 }
 
 #[get("/items")]
-async fn item_list(pool: web::Data<PgPool>) -> HttpResponse {
+async fn item_list(tera: web::Data<Tera>, pool: web::Data<PgPool>) -> HttpResponse {
     let rows = sqlx::query_as::<_, Item>("SELECT * FROM items")
         .fetch_all(pool.as_ref())
         .await
         .unwrap();
 
-    let template = ItemListTemplate { item_list: rows };
-    template.to_response()
+    let mut context = Context::new();
+    context.insert("item_list", &rows);
+
+    let rendered = tera.render("item-list.askama.html", &context).unwrap();
+    HttpResponse::Ok().content_type("text/html").body(rendered)
 }
 
 #[post("/new")]
@@ -77,12 +71,16 @@ async fn main() -> std::io::Result<()> {
         .unwrap();
 
     HttpServer::new(move || {
+        let mut templates = Tera::new("templates/**/*").expect("errors in tera templates");
+        // templates.autoescape_on(vec!["tera"]);
+
         App::new()
             .service(web::redirect("/", "/items"))
             .service(hello)
             // .service(update)
             .service(item_list)
             .service(new)
+            .app_data(web::Data::new(templates))
             .app_data(web::Data::new(pool.clone()))
     })
     .bind(("127.0.0.1", 8080))?
