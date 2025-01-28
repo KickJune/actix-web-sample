@@ -22,6 +22,7 @@ psql sample_db sample_user
 ```
 - パスワードを聞かれたら、`sample_pass`と入力
 - schema.sqlの中身をコピペして実行
+- データベースの構造が変わった時はこの手順を再実行してください
 
 
 ### Twigプラグインの設定
