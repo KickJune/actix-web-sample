@@ -31,7 +31,14 @@ struct ItemListTemplate {
 //     price: Option<i32>,
 // }
 
-#[derive(sqlx::FromRow)]
+#[derive(Deserialize, Debug)]
+struct ItemRequest {
+    name: String,
+    price: i32,
+    description: Option<String>, // NULLが入るかもしれない時はOptionにする
+}
+
+#[derive(sqlx::FromRow, Deserialize, Debug)]
 struct Item {
     id: i32,
     name: String,
@@ -48,6 +55,23 @@ async fn item_list(pool: web::Data<PgPool>) -> HttpResponse {
 
     let item_list_template = ItemListTemplate { item_list: rows };
     item_list_template.to_response()
+}
+
+#[post("/new")]
+async fn new(pool: web::Data<PgPool>, form: web::Form<ItemRequest>) -> HttpResponse {
+    let item_request = form.into_inner();
+
+    sqlx::query("INSERT INTO items(name, price, description) VALUES ($1, $2, $3)")
+        .bind(item_request.name)
+        .bind(item_request.price)
+        .bind(item_request.description)
+        .execute(pool.as_ref())
+        .await
+        .unwrap();
+
+    HttpResponse::Found()
+        .append_header(("Location", "/"))
+        .finish()
 }
 
 // #[post("/update")]
@@ -88,6 +112,7 @@ async fn main() -> std::io::Result<()> {
             .service(hello)
             // .service(update)
             .service(item_list)
+            .service(new)
             .app_data(web::Data::new(pool.clone()))
     })
     .bind(("127.0.0.1", 8080))?
