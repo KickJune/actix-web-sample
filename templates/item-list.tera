@@ -25,6 +25,10 @@
             <input id="price" name="price" type="number" required/>
         </div>
         <div>
+            <label for="release_date">発売日</label>
+            <input id="release_date" name="release_date" type="date"/>
+        </div>
+        <div>
             <label for="description">説明</label>
             <textarea id="description" name="description"></textarea>
         </div>

@@ -12,6 +12,9 @@
         <dt>価格</dt>
         <dd>{{ item.price }}</dd>
 
+        <dt>発売日</dt>
+        <dd>{{ item.release_date }}</dd>
+
         <dt>説明</dt>
         <dd>{{ item.description }}</dd>
     </dl>
