@@ -1,7 +1,9 @@
 use actix_web::{get, post, web, App, HttpResponse, HttpServer};
 use chrono::naive::NaiveDate;
+use dotenvy::dotenv;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgPool};
+use std::env;
 use tera::{Context, Tera};
 
 #[get("/items/{id}")]
@@ -74,9 +76,15 @@ async fn new_item(pool: web::Data<PgPool>, form: web::Form<ItemRequest>) -> Http
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let pool = PgPool::connect("postgres://sample_user:sample_pass@localhost:5432/sample_db")
+    dotenv().ok();
+
+    let database_url = env::var("DATABASE_URL").expect("環境変数にDATABASE_URLがありません");
+    let pool = PgPool::connect(&database_url)
         .await
         .expect("コネクションプール作成エラー");
+
+    let port_string = env::var("PORT").expect("環境変数にPORTがありません");
+    let port = port_string.parse::<u16>().expect("環境変数にPORTの形式が不正です");
 
     HttpServer::new(move || {
         let mut templates = Tera::new("templates/**/*").expect("Teraテンプレート設定エラー");
@@ -91,7 +99,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(templates))
             .app_data(web::Data::new(pool.clone()))
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("0.0.0.0", port))?
     .run()
     .await
 }

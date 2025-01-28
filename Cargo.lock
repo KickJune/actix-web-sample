@@ -191,6 +191,7 @@ version = "1.0.0"
 dependencies = [
  "actix-web",
  "chrono",
+ "dotenvy",
  "serde",
  "sqlx",
  "tera",
