@@ -14,7 +14,7 @@ async fn hello(id: web::Path<i32>, tera: web::Data<Tera>, pool: web::Data<PgPool
     let mut context = Context::new();
     context.insert("item", &row);
 
-    let rendered = tera.render("item-detail.askama.html", &context).unwrap();
+    let rendered = tera.render("item-detail.tera", &context).unwrap();
     HttpResponse::Ok().content_type("text/html").body(rendered)
 }
 
@@ -43,7 +43,7 @@ async fn item_list(tera: web::Data<Tera>, pool: web::Data<PgPool>) -> HttpRespon
     let mut context = Context::new();
     context.insert("item_list", &rows);
 
-    let rendered = tera.render("item-list.askama.html", &context).unwrap();
+    let rendered = tera.render("item-list.tera", &context).unwrap();
     HttpResponse::Ok().content_type("text/html").body(rendered)
 }
 
@@ -72,7 +72,7 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         let mut templates = Tera::new("templates/**/*").expect("errors in tera templates");
-        // templates.autoescape_on(vec!["tera"]);
+        templates.autoescape_on(vec!["tera"]);
 
         App::new()
             .service(web::redirect("/", "/items"))
