@@ -5,9 +5,9 @@
 {% block content %}
   <form action="/update" method="post">
     <ul>
-      {% for task in tasks %}
+      {% for item in item_list %}
       <li>
-        {{ task.name }}<button type="submit" name="id" value="{{ task.id }}">
+        {{ item.name }}<button type="submit" name="id" value="{{ item.id }}">
           Done
         </button>
       </li>

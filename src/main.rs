@@ -19,9 +19,9 @@ async fn hello(name: web::Path<String>) -> HttpResponse {
 }
 
 #[derive(Template)]
-#[template(path = "todo.askama.html")]
-struct TodoTemplate {
-    tasks: Vec<Task>,
+#[template(path = "item-list.askama.html")]
+struct ItemListTemplate {
+    item_list: Vec<Item>,
 }
 
 // #[derive(Debug, Deserialize, Serialize)]
@@ -32,22 +32,22 @@ struct TodoTemplate {
 // }
 
 #[derive(sqlx::FromRow)]
-struct Task {
+struct Item {
     id: i32,
     name: String,
     price: i32,
-    description: Option<String>,
+    description: Option<String>, // NULLが入るかもしれない時はOptionにする
 }
 
 #[get("/")]
-async fn todo(pool: web::Data<PgPool>) -> HttpResponse {
-    let rows = sqlx::query_as::<_, Task>("SELECT * FROM items")
+async fn item_list(pool: web::Data<PgPool>) -> HttpResponse {
+    let rows = sqlx::query_as::<_, Item>("SELECT * FROM items")
         .fetch_all(pool.as_ref())
         .await
         .unwrap();
 
-    let todo = TodoTemplate { tasks: rows };
-    todo.to_response()
+    let item_list_template = ItemListTemplate { item_list: rows };
+    item_list_template.to_response()
 }
 
 // #[post("/update")]
@@ -87,7 +87,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .service(hello)
             // .service(update)
-            .service(todo)
+            .service(item_list)
             .app_data(web::Data::new(pool.clone()))
     })
     .bind(("127.0.0.1", 8080))?
