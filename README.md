@@ -2,26 +2,28 @@
 
 ## 環境構築
 
-### データベースの作成
+### データベースとユーザーの作成
 
-psqlにログイン
+- 以下のコマンドでpsqlにログイン
 
 ```
 psql postgres postgres
 ```
 
-setup.sqlの中身をコピペして実行
+- パスワードを聞かれたら、postgresユーザーのパスワードを入力
+- setup.sqlの中身をコピペして実行
 
 ### テーブルの作成
 
-psqlにログイン
+- 以下のコマンドでpsqlにログイン
 
 ```
 psql sample_db sample_user
 ```
+- パスワードを聞かれたら、`sample_pass`と入力
+- schema.sqlの中身をコピペして実行
 
-schema.sqlの中身をコピペして実行
 
-### Askamaプラグインの導入
+### Twigプラグインの設定
 
-Rust Roverで[Askama Template Support](https://plugins.jetbrains.com/plugin/16591-askama-template-support)をインストール
+- Rust Roverで`*.tera`のファイルをTwigで開くように設定
