@@ -7,7 +7,7 @@
     <ul>
       {% for task in tasks %}
       <li>
-        {{ task }}<button type="submit" name="id" value="{{ task }}">
+        {{ task.name }}<button type="submit" name="id" value="{{ task.id }}">
           Done
         </button>
       </li>

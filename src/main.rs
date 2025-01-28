@@ -1,7 +1,9 @@
 use actix_web::{get, post, web, App, HttpResponse, HttpServer};
 use askama::Template;
 use askama_actix::TemplateToResponse;
-use sqlx::{Row, PgPool};
+use chrono::naive::NaiveDate;
+use serde::{Deserialize, Serialize};
+use sqlx::{PgPool, Row};
 
 #[derive(Template)]
 #[template(path = "hello.askama.html")]
@@ -19,67 +21,76 @@ async fn hello(name: web::Path<String>) -> HttpResponse {
 #[derive(Template)]
 #[template(path = "todo.askama.html")]
 struct TodoTemplate {
-    tasks: Vec<String>,
+    tasks: Vec<Task>,
 }
+
+// #[derive(Debug, Deserialize, Serialize)]
+// struct Task {
+//     id: Option<String>,
+//     name: Option<String>,
+//     price: Option<i32>,
+// }
+
+#[derive(sqlx::FromRow)]
+struct Task {
+    id: i32,
+    name: String,
+    price: i32,
+    description: Option<String>,
+}
+
 #[get("/")]
 async fn todo(pool: web::Data<PgPool>) -> HttpResponse {
-    let rows = sqlx::query("SELECT task FROM tasks;")
+    let rows = sqlx::query_as::<_, Task>("SELECT * FROM items")
         .fetch_all(pool.as_ref())
         .await
         .unwrap();
-    let tasks: Vec<String> = rows
-        .iter()
-        .map(|row| row.get::<String, _>("task"))
-        .collect();
-    let todo = TodoTemplate { tasks };
+
+    let todo = TodoTemplate { tasks: rows };
     todo.to_response()
 }
 
-#[derive(serde::Deserialize)]
-struct Task {
-    id: Option<String>,
-    task: Option<String>,
-}
-
-#[post("/update")]
-async fn update(pool: web::Data<PgPool>, form: web::Form<Task>) -> HttpResponse {
-    let task = form.into_inner();
-
-    if let Some(id) = task.id {
-        sqlx::query("DELETE FROM tasks WHERE task = $1")
-            .bind(id)
-            .execute(pool.as_ref())
-            .await
-            .unwrap();
-    }
-    match task.task {
-        Some(task) if !task.is_empty() => {
-            sqlx::query("INSERT INTO tasks (task) VALUES ($1)")
-                .bind(task)
-                .execute(pool.as_ref())
-                .await
-                .unwrap();
-        }
-        _ => {}
-    }
-
-    HttpResponse::Found()
-        .append_header(("Location", "/"))
-        .finish()
-}
+// #[post("/update")]
+// async fn update(pool: web::Data<PgPool>, form: web::Form<Task>) -> HttpResponse {
+//     let task = form.into_inner();
+//
+//     if let Some(id) = task.id {
+//         sqlx::query("DELETE FROM tasks WHERE task = $1")
+//             .bind(id)
+//             .execute(pool.as_ref())
+//             .await
+//             .unwrap();
+//     }
+//     match task.name {
+//         Some(task) if !task.is_empty() => {
+//             sqlx::query("INSERT INTO tasks (task) VALUES ($1)")
+//                 .bind(task)
+//                 .execute(pool.as_ref())
+//                 .await
+//                 .unwrap();
+//         }
+//         _ => {}
+//     }
+//
+//     HttpResponse::Found()
+//         .append_header(("Location", "/"))
+//         .finish()
+// }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let pool = PgPool::connect("postgres://sample_user:sample_pass@localhost:5432/sample_db").await.unwrap();
+    let pool = PgPool::connect("postgres://sample_user:sample_pass@localhost:5432/sample_db")
+        .await
+        .unwrap();
 
     HttpServer::new(move || {
         App::new()
             .service(hello)
-            .service(update)
+            // .service(update)
             .service(todo)
             .app_data(web::Data::new(pool.clone()))
     })
-        .bind(("127.0.0.1", 8080))?
-        .run()
-        .await
+    .bind(("127.0.0.1", 8080))?
+    .run()
+    .await
 }
