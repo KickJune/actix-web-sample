@@ -1,3 +1,4 @@
+use actix_files::Files;
 use actix_web::{get, post, web, App, HttpResponse, HttpServer};
 use chrono::naive::NaiveDate;
 use dotenvy::dotenv;
@@ -76,6 +77,7 @@ async fn new_item(pool: web::Data<PgPool>, form: web::Form<ItemRequest>) -> Http
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    // .envから設定値を読み込む
     dotenv().ok();
 
     let database_url = env::var("DATABASE_URL").expect("環境変数にDATABASE_URLがありません");
@@ -98,6 +100,8 @@ async fn main() -> std::io::Result<()> {
             .service(new_item)
             .app_data(web::Data::new(templates))
             .app_data(web::Data::new(pool.clone()))
+            // 「/static/なんとか」にアクセスされたらstaticフォルダのファイルをレスポンスする
+            .service(Files::new("/static", "./static"))
     })
     .bind(("0.0.0.0", port))?
     .run()
