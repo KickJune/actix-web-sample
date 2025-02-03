@@ -31,6 +31,7 @@ async fn main() -> std::io::Result<()> {
             .service(handlers::item_detail)
             .service(handlers::item_list)
             .service(handlers::new_item)
+            .service(handlers::create_new_item)
             .app_data(web::Data::new(templates))
             .app_data(web::Data::new(pool.clone()))
             // 「/static/なんとか」にアクセスされたらstaticフォルダのファイルをレスポンスする

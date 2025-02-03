@@ -32,12 +32,20 @@ pub async fn item_detail(id: Path<i32>, tera: Data<Tera>, pool: Data<PgPool>) ->
 struct ItemForm {
     name: String,
     price: i32,
-    release_date: Option<NaiveDate>,
-    description: Option<String>, // NULLが入るかもしれない時はOptionにする
+    release_date: String,
+    description: String,
+}
+
+#[get("/new")]
+pub async fn new_item(tera: Data<Tera>) -> HttpResponse {
+    let context = Context::new();
+    let rendered = tera.render("item-new.tera", &context).unwrap();
+    HttpResponse::Ok().content_type("text/html").body(rendered)
 }
 
 #[post("/new")]
-pub async fn new_item(pool: Data<PgPool>, form: Form<ItemForm>) -> HttpResponse {
+pub async fn create_new_item(pool: Data<PgPool>, form: Form<ItemForm>) -> HttpResponse {
+
     let item_request = form.into_inner();
 
     db::insert_item(
@@ -45,8 +53,16 @@ pub async fn new_item(pool: Data<PgPool>, form: Form<ItemForm>) -> HttpResponse 
         db::NewItem {
             name: item_request.name,
             price: item_request.price,
-            release_date: item_request.release_date,
-            description: item_request.description,
+            release_date: if item_request.release_date.is_empty() {
+                None
+            } else {
+                Some(NaiveDate::parse_from_str(&item_request.release_date, "%Y-%m-%d").unwrap())
+            },
+            description: if item_request.description.is_empty() {
+                None
+            } else {
+                Some(item_request.description)
+            },
         },
     )
     .await;

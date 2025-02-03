@@ -1,7 +1,7 @@
 {% extends "base.tera" %}
 
 {% block title %}
-    商品リスト
+    商品一覧
 {% endblock %}
 
 {% block content %}
@@ -12,27 +12,5 @@
             </li>
         {% endfor %}
     </ul>
-
-    <hr/>
-
-    <form action="/new" method="post">
-        <div>
-            <label for="name">商品名</label>
-            <input id="name" name="name" required/>
-        </div>
-        <div>
-            <label for="price">価格</label>
-            <input id="price" name="price" type="number" required/>
-        </div>
-        <div>
-            <label for="release_date">発売日</label>
-            <input id="release_date" name="release_date" type="date"/>
-        </div>
-        <div>
-            <label for="description">説明</label>
-            <textarea id="description" name="description"></textarea>
-        </div>
-        <button class="btn btn-primary">登録</button>
-    </form>
 {% endblock %}
 
